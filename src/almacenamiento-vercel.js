@@ -11,10 +11,19 @@ let redis;
 
 function database() {
   if (!redis) {
-    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-      throw new Error('Conectá Upstash Redis al proyecto.');
+    const upstash = {
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    };
+    const integration = {
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    };
+    const credentials = [upstash, integration].find(({ url, token }) => url && token);
+    if (!credentials) {
+      throw Object.assign(new Error('Falta conectar Upstash Redis en el entorno Production de Vercel.'), { status: 503 });
     }
-    redis = Redis.fromEnv();
+    redis = new Redis(credentials);
   }
   return redis;
 }
