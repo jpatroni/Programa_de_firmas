@@ -1,2 +1,6 @@
 plantillas/activa.json
 plantillas/activa.json.tmp
+node_modules/
+.vercel/
+.env*
+public/subida.js

@@ -15,6 +15,7 @@ let active = null;
 let draft = null;
 let recipient = '';
 let admin = false;
+let uploadPrefix;
 let busy = false;
 let choosingFile = false;
 let fileVersion = 0;
@@ -35,6 +36,7 @@ async function api(route, method = 'GET', body) {
 
 async function loadImage(src) {
   const image = new Image();
+  if (src.startsWith('https://')) image.crossOrigin = 'anonymous';
   image.src = src;
   await image.decode();
   return image;
@@ -85,7 +87,7 @@ async function refreshTemplate() {
   const template = await api('plantilla');
   active = template ? {
     ...template,
-    bitmap: await loadImage('data:image/png;base64,' + template.image),
+    bitmap: await loadImage(template.url ?? ('data:image/png;base64,' + template.image)),
   } : null;
   select('workspace').hidden = !active;
   select('availability').hidden = !!active;
@@ -133,7 +135,8 @@ login.addEventListener('submit', async event => {
   button.disabled = true;
   adminStatus.textContent = '';
   try {
-    await api('ingresar', 'POST', { email: select('email').value, password: select('password').value });
+    const session = await api('ingresar', 'POST', { email: select('email').value, password: select('password').value });
+    uploadPrefix = session.uploadPrefix;
     login.reset();
     showAdmin(true);
   } catch (error) {
@@ -162,7 +165,7 @@ file.addEventListener('change', async () => {
     buffer.width = Math.max(1, Math.round(image.width * scale));
     buffer.height = Math.max(1, Math.round(image.height * scale));
     buffer.getContext('2d').drawImage(image, 0, 0, buffer.width, buffer.height);
-    draft = { bitmap: buffer, image: buffer.toDataURL('image/png').split(',')[1], x: .5, y: .51 };
+    draft = { bitmap: buffer, x: .5, y: .51 };
   } catch (error) {
     if (version === fileVersion) adminStatus.textContent = error.message || 'No se pudo abrir la imagen.';
   } finally {
@@ -194,6 +197,30 @@ position.addEventListener('keydown', event => {
   moveName(draft.x + movement[0], draft.y + movement[1]);
 });
 
+async function templateToPublish() {
+  const { x, y, url, bitmap } = draft;
+  if (url === '/plantillas/original.png') return { x, y, pathname: url };
+  if (uploadPrefix) {
+    if (!draft.pathname) {
+      const png = await new Promise(resolve => bitmap.toBlob(resolve, 'image/png'));
+      if (!png || png.size > 12 * 1024 * 1024) {
+        throw new Error('La plantilla supera el tamaño permitido de 12 MB.');
+      }
+      const { upload } = await import('/subida.js');
+      const blob = await upload(uploadPrefix + crypto.randomUUID() + '.png', png, {
+        access: 'public',
+        handleUploadUrl: '/api/subida',
+        headers: { 'X-Diploma': '1' },
+        contentType: 'image/png',
+        multipart: png.size > 5 * 1024 * 1024,
+      });
+      draft.pathname = blob.pathname;
+    }
+    return { x, y, pathname: draft.pathname };
+  }
+  return { x, y, image: draft.image ?? bitmap.toDataURL('image/png').split(',')[1] };
+}
+
 async function changeTemplate(method) {
   busy = true;
   file.disabled = true;
@@ -201,7 +228,7 @@ async function changeTemplate(method) {
   showDraft();
   adminStatus.textContent = '';
   try {
-    const body = method === 'PUT' ? { image: draft.image, x: draft.x, y: draft.y } : undefined;
+    const body = method === 'PUT' ? await templateToPublish() : undefined;
     await api('plantilla', method, body);
     await refreshTemplate();
     adminStatus.textContent = method === 'PUT' ? 'Plantilla publicada.' : 'Plantilla quitada.';
@@ -235,6 +262,9 @@ select('logout').addEventListener('click', async () => {
 refreshTemplate().catch(() => {
   select('availability').textContent = 'No se pudo cargar el diploma. Actualizá la página para volver a intentar.';
 });
-api('sesion').then(session => showAdmin(session.admin)).catch(() => {
+api('sesion').then(session => {
+  uploadPrefix = session.uploadPrefix;
+  showAdmin(session.admin);
+}).catch(() => {
   adminStatus.textContent = 'No se pudo verificar la sesión.';
 });

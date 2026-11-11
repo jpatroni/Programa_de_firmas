@@ -17,6 +17,13 @@ Entrá desde **Administración** con el correo registrado y la contraseña indic
 - **Lógica de aplicación**. `src/servicio.js` autentica a la administradora, gestiona sesiones y valida los cambios de plantilla.
 - **Persistencia**. `src/almacenamiento.js` guarda la plantilla activa y la posición del nombre en `plantillas/activa.json`. Podés elegir otra carpeta persistente con `DIPLOMA_DATA_DIR`.
 
-## Acceso desde otros equipos
+## Despliegue en Vercel
 
-Para uso local, el servidor escucha en 127.0.0.1. Para publicar el programa, ejecutalo en un servidor con almacenamiento persistente y HTTPS, configurá `ADMIN_PASSWORD` con una contraseña nueva y activá `SECURE_COOKIE=1`. Podés ajustar `HOST` y `PORT` según el entorno. Los asistentes abren la URL de esa instalación y ven la plantilla activa al cargar la página.
+1. Importá el repositorio desde GitHub. Seleccioná la raíz del proyecto y la rama de producción `master`. La configuración de compilación está en `vercel.json`.
+2. Conectá un almacén **Vercel Blob público** y una base **Upstash Redis**. El almacén es público porque los asistentes necesitan cargar la plantilla para dibujar y descargar el diploma. La subida exige una sesión de administradora.
+3. Verificá las variables `BLOB_READ_WRITE_TOKEN`, `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`. Configurá `ADMIN_PASSWORD` con una contraseña nueva en **Settings → Environment Variables**. Vercel usa una cookie segura por HTTPS y exige esa variable para iniciar sesión.
+4. Desplegá. Abrí el enlace de producción, publicá una plantilla desde **Administración** y verificá desde una ventana privada que se pueda generar y descargar el diploma. Probá también cambiar la posición del nombre, quitar la plantilla y volver a publicar.
+
+`npm ci` instala las dependencias y `npm run build` genera el módulo de subida que usa el navegador en Vercel. El modo local sigue funcionando con `node server.js` sin esas dependencias.
+
+En Vercel, `api/handler.js` adapta las solicitudes a la capa HTTP compartida en `src/http.js`. `src/almacenamiento-vercel.js` guarda en Redis la plantilla activa, su posición y las sesiones. Las imágenes se suben directamente del navegador a Blob. Quitar una plantilla la retira del generador. Si necesitás borrar el archivo de Blob, podés hacerlo desde el panel de almacenamiento una vez retirado.

@@ -1,0 +1,19 @@
+{
+  "name": "programa-de-firmas",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "build": "esbuild src/subida-navegador.mjs --bundle --format=esm --minify --outfile=public/subida.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.41.0",
+    "@vercel/blob": "2.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
