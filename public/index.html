@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diplomas</title>
+<style>
+
+  :root { color-scheme: light; --wine: #791536; --ink: #251b20; --muted: #63545b; --paper: #fff; --background: #faf6f7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--ink); font: 1rem/1.5 "Instrument Sans", system-ui, sans-serif; }
+  main { width: min(1400px, 100%); margin: auto; padding: clamp(20px, 4vw, 58px); }
+  header { border-top: 4px solid var(--wine); padding-top: 22px; margin-bottom: 30px; }
+  header p { margin: 0 0 4px; color: var(--wine); font-weight: 650; }
+  h1 { margin: 0; font: 500 clamp(2rem, 5vw, 3.6rem)/1.06 "Instrument Serif", Georgia, serif; }
+  h2 { margin: 0 0 14px; font-size: 1rem; }
+  .workspace { display: grid; grid-template-columns: minmax(235px, 285px) minmax(0, 1fr); gap: clamp(22px, 4vw, 54px); align-items: start; }
+  label { display: block; margin: 0 0 5px; font-weight: 600; }
+  input, button { font: inherit; border-radius: 6px; padding: 10px 12px; min-height: 44px; }
+  input { width: 100%; border: 1px solid #bbaeb4; background: var(--paper); color: var(--ink); margin-bottom: 14px; }
+  button { border: 1px solid var(--wine); background: var(--paper); color: var(--wine); cursor: pointer; font-weight: 650; }
+  button:disabled { opacity: .55; cursor: default; }
+  button:enabled:hover { box-shadow: inset 0 0 0 1px currentColor; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #a54b69; outline-offset: 2px; }
+  #generate { display: block; width: 100%; background: var(--wine); color: var(--paper); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  #status { color: var(--muted); margin: 12px 0 0; }
+  canvas { display: block; width: 100%; height: auto; background: var(--paper); border: 1px solid #e3d7db; box-shadow: 0 10px 32px #33142114; }
+  @media (max-width: 720px) { .workspace { grid-template-columns: 1fr; } }
+  @page { size: A4 landscape; margin: 5mm; }
+  @media print {
+    body { background: white; }
+    main { width: 100%; max-width: none; padding: 0; }
+    header, form, h2 { display: none; }
+    .workspace { display: block; }
+    canvas { width: 100%; height: 200mm; object-fit: contain; border: 0; box-shadow: none; break-inside: avoid; }
+  }
+
+  [hidden] { display: none !important; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+  #administracion { margin-bottom: 30px; padding: 18px; border: 1px solid #e3d7db; background: white; }
+  #administracion input { max-width: 380px; display: block; }
+  #editor { max-width: 650px; }
+  #position { cursor: crosshair; }
+
+  @media print {
+    header, #administracion, #availability { display: none !important; }
+    #certificate { max-height: 199mm; }
+  }
+</style>
+<script src="/app.js" defer></script>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Personalizá tu diploma</h1>
+    <button id="admin-toggle" type="button" aria-expanded="false" aria-controls="administracion">Administración</button>
+  </header>
+  <section id="administracion" aria-label="Administración" hidden>
+    <form id="login">
+      <h2>Ingreso de administradora</h2>
+      <label for="email">Correo electrónico</label>
+      <input id="email" type="email" autocomplete="username" maxlength="254" required>
+      <label for="password">Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" maxlength="256" required>
+      <button>Ingresar</button>
+    </form>
+    <div id="editor" hidden>
+      <h2>Plantilla del diploma</h2>
+      <label for="file">Subir una imagen PNG o JPG</label>
+      <input id="file" type="file" accept="image/png,image/jpeg">
+      <div id="position-editor" hidden>
+        <p>Hacé clic en la imagen donde debe quedar el centro del nombre.</p>
+        <canvas id="position" tabindex="0" aria-label="Ubicación del nombre. Usá las flechas para moverlo."></canvas>
+      </div>
+      <div class="actions">
+        <button id="publish" type="button" disabled>Publicar plantilla</button>
+        <button id="remove" type="button" disabled>Quitar plantilla</button>
+        <button id="logout" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+    <p id="admin-status" role="status"></p>
+  </section>
+  <p id="availability" role="status">Cargando diploma…</p>
+  <div class="workspace" id="workspace" hidden>
+    <form id="form">
+      <label for="first">Nombre</label>
+      <input id="first" autocomplete="given-name" required maxlength="100">
+      <label for="last">Apellido</label>
+      <input id="last" autocomplete="family-name" required maxlength="100">
+      <button id="generate">OK, generar diploma</button>
+      <div class="actions">
+        <button id="download" type="button" disabled>Descargar PNG</button>
+        <button id="print" type="button" disabled>Imprimir</button>
+      </div>
+      <p id="status" role="status"></p>
+    </form>
+    <section aria-labelledby="preview">
+      <h2 id="preview">Vista previa</h2>
+      <canvas id="certificate" role="img" aria-label="Plantilla del diploma"></canvas>
+    </section>
+  </div>
+</main>
+</body>
+</html>
+
